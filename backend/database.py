@@ -1,16 +1,19 @@
+import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:Database@localhost:5432/recipesdb"
+# Get the DATABASE_URL from environment variable (Render/Railway will provide this)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+if not DATABASE_URL:
+    # fallback for local development
+    DATABASE_URL = "postgresql://postgres:yourpassword@localhost:5432/recipesdb"
+
+# Create engine
+engine = create_engine(DATABASE_URL)
+
+# Session maker
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Base class for models
+Base = declarative_base()
