@@ -1,33 +1,37 @@
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE = "https://recipes-app-final-1.onrender.com";
 
 function App() {
-  const [cuisines, setCuisines] = useState([]);
   const [recipes, setRecipes] = useState([]);
-  const [selectedCuisine, setSelectedCuisine] = useState("");
+  const [cuisines, setCuisines] = useState([]);
+  const [selectedCuisine, setSelectedCuisine] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch cuisines from backend
+  // Fetch cuisines
   const fetchCuisines = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cuisines`);
+      const res = await fetch(`${API_BASE}/api/cuisines`);
       const data = await res.json();
-      setCuisines(data);
+      setCuisines(["All", ...data]); // add "All" at top
     } catch (err) {
       console.error("Error fetching cuisines:", err);
     }
   };
 
-  // Fetch recipes (all or filtered)
-  const fetchRecipes = async (cuisine = "", search = "") => {
+  // Fetch recipes
+  const fetchRecipes = async () => {
     try {
-      let url = `${API_BASE_URL}/api/recipes?page=1&limit=20`;
-      if (cuisine || search) {
-        url = `${API_BASE_URL}/api/recipes/search?`;
-        if (cuisine) url += `cuisine=${cuisine}&`;
-        if (search) url += `title=${search}`;
+      let url = `${API_BASE}/api/recipes?page=1&limit=50`;
+
+      if (selectedCuisine && selectedCuisine !== "All") {
+        url = `${API_BASE}/api/recipes/search?cuisine=${selectedCuisine}`;
       }
+
+      if (searchQuery) {
+        url = `${API_BASE}/api/recipes/search?title=${searchQuery}`;
+      }
+
       const res = await fetch(url);
       const data = await res.json();
       setRecipes(data);
@@ -41,60 +45,57 @@ function App() {
     fetchRecipes();
   }, []);
 
+  useEffect(() => {
+    fetchRecipes();
+  }, [selectedCuisine]);
+
+  const handleSearch = () => {
+    fetchRecipes();
+  };
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">🍲 Recipes</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">🍲 Recipes App</h1>
 
-      {/* Filters */}
-      <div className="flex gap-4 mb-6">
-        {/* Cuisine Dropdown */}
-        <select
-          value={selectedCuisine}
-          onChange={(e) => {
-            setSelectedCuisine(e.target.value);
-            fetchRecipes(e.target.value, searchQuery);
-          }}
-          className="border p-2 rounded"
-        >
-          <option value="">All Cuisines</option>
-          {cuisines.map((cuisine, i) => (
-            <option key={i} value={cuisine}>
-              {cuisine}
-            </option>
-          ))}
-        </select>
+      {/* Cuisine Dropdown */}
+      <select
+        value={selectedCuisine}
+        onChange={(e) => setSelectedCuisine(e.target.value)}
+        className="border p-2 rounded mb-4"
+      >
+        {cuisines.map((c, idx) => (
+          <option key={idx} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
 
-        {/* Search Bar */}
+      {/* Search Bar */}
+      <div className="mb-4">
         <input
           type="text"
           placeholder="Search recipes..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="border p-2 rounded flex-1"
+          className="border p-2 rounded mr-2"
         />
         <button
-          onClick={() => fetchRecipes(selectedCuisine, searchQuery)}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          onClick={handleSearch}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
         >
           Search
         </button>
       </div>
 
       {/* Recipes List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {recipes.length > 0 ? (
-          recipes.map((r) => (
-            <div key={r.id} className="border p-4 rounded shadow">
-              <h2 className="font-bold text-lg">{r.title}</h2>
-              <p className="text-sm text-gray-600">{r.cuisine}</p>
-              <p className="mt-2">{r.description}</p>
-              <p className="mt-2 text-sm">⭐ {r.rating} | ⏱ {r.total_time} mins</p>
-            </div>
-          ))
-        ) : (
-          <p>No recipes found.</p>
-        )}
-      </div>
+      <ul>
+        {recipes.map((recipe) => (
+          <li key={recipe.id} className="mb-2 border-b pb-2">
+            <h2 className="font-semibold">{recipe.title}</h2>
+            <p className="text-sm">{recipe.cuisine} • ⭐ {recipe.rating}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
