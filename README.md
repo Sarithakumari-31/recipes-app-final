@@ -11,5 +11,5 @@
 ## Frontend (React + Tailwind)
 1. `cd frontend`
 2. `npm install`
-3. `npm run dev` → http://localhost:5173
+3. `npm run dev` → http://localhost:5174/
 
