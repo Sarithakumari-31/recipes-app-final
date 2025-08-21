@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 function App() {
-  const [recipes, setRecipes] = useState([]);
   const [cuisines, setCuisines] = useState([]);
+  const [recipes, setRecipes] = useState([]);
   const [selectedCuisine, setSelectedCuisine] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch cuisines for dropdown
+  // Fetch cuisines from backend
   const fetchCuisines = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/cuisines");
+      const res = await fetch(`${API_BASE_URL}/api/cuisines`);
       const data = await res.json();
       setCuisines(data);
     } catch (err) {
@@ -17,13 +19,15 @@ function App() {
     }
   };
 
-  // Fetch recipes (with filters)
-  const fetchRecipes = async () => {
+  // Fetch recipes (all or filtered)
+  const fetchRecipes = async (cuisine = "", search = "") => {
     try {
-      let url = "http://127.0.0.1:8000/api/recipes/search?";
-      if (selectedCuisine) url += `cuisine=${selectedCuisine}&`;
-      if (searchTerm) url += `title=${searchTerm}&`;
-
+      let url = `${API_BASE_URL}/api/recipes?page=1&limit=20`;
+      if (cuisine || search) {
+        url = `${API_BASE_URL}/api/recipes/search?`;
+        if (cuisine) url += `cuisine=${cuisine}&`;
+        if (search) url += `title=${search}`;
+      }
       const res = await fetch(url);
       const data = await res.json();
       setRecipes(data);
@@ -38,39 +42,39 @@ function App() {
   }, []);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">🍴 Recipes</h1>
+    <div className="p-6 max-w-5xl mx-auto">
+      <h1 className="text-3xl font-bold mb-4">🍲 Recipes</h1>
 
-      {/* Filters Section */}
-      <div className="flex items-center gap-4 mb-6">
+      {/* Filters */}
+      <div className="flex gap-4 mb-6">
         {/* Cuisine Dropdown */}
         <select
           value={selectedCuisine}
-          onChange={(e) => setSelectedCuisine(e.target.value)}
-          className="border rounded-lg px-4 py-2"
+          onChange={(e) => {
+            setSelectedCuisine(e.target.value);
+            fetchRecipes(e.target.value, searchQuery);
+          }}
+          className="border p-2 rounded"
         >
           <option value="">All Cuisines</option>
-          {cuisines.map((cuisine, index) => (
-            <option key={index} value={cuisine}>
+          {cuisines.map((cuisine, i) => (
+            <option key={i} value={cuisine}>
               {cuisine}
             </option>
           ))}
         </select>
 
-        {/* Search by Title */}
+        {/* Search Bar */}
         <input
           type="text"
           placeholder="Search recipes..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && fetchRecipes()} // hit Enter to search
-          className="border rounded-lg px-4 py-2 flex-1"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="border p-2 rounded flex-1"
         />
-
-        {/* Search Button */}
         <button
-          onClick={fetchRecipes}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          onClick={() => fetchRecipes(selectedCuisine, searchQuery)}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           Search
         </button>
@@ -78,14 +82,18 @@ function App() {
 
       {/* Recipes List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {recipes.map((recipe) => (
-          <div key={recipe.id} className="border rounded-lg p-4 shadow">
-            <h2 className="text-xl font-semibold">{recipe.title}</h2>
-            <p className="text-gray-600">{recipe.cuisine}</p>
-            <p className="text-yellow-600">⭐ {recipe.rating}</p>
-            <p className="mt-2 text-sm">{recipe.description}</p>
-          </div>
-        ))}
+        {recipes.length > 0 ? (
+          recipes.map((r) => (
+            <div key={r.id} className="border p-4 rounded shadow">
+              <h2 className="font-bold text-lg">{r.title}</h2>
+              <p className="text-sm text-gray-600">{r.cuisine}</p>
+              <p className="mt-2">{r.description}</p>
+              <p className="mt-2 text-sm">⭐ {r.rating} | ⏱ {r.total_time} mins</p>
+            </div>
+          ))
+        ) : (
+          <p>No recipes found.</p>
+        )}
       </div>
     </div>
   );
